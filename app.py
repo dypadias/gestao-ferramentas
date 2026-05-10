@@ -1,37 +1,122 @@
-import streamlit as st
+import flet as ft
+import inspect
 from database.db_manager import init_db
-
-# 1. Configuração da página deve ser a primeira coisa
-st.set_page_config(page_title="Gestão de Ferramentas", page_icon="🔧", layout="wide")
-
-# Logo da empresa no sidebar
-st.sidebar.image("assets/logo.png", use_container_width=True)
-
-# 2. Inicializa o banco de dados
-init_db()
-
-# 3. Importa as telas
+from views.dashboard import renderizar_dashboard
 from views.emprestimos import renderizar_emprestimos
 from views.devolucoes import renderizar_devolucoes
 from views.cadastros import renderizar_cadastros
-from views.dashboard import renderizar_dashboard
 
-# Função temporária para o Dashboard enquanto não o construímos
-# def renderizar_dashboard():
-#     st.header('🚨 Dashboard de Alertas')
-#     st.write('Visão geral das ferramentas da oficina aparecerá aqui.')
+async def main(page: ft.Page):
+    page.title = "Gestão de Ferramentas"
+    page.window_width = 1200
+    page.window_height = 800
+    page.window_min_width = 1000
+    page.window_min_height = 700
+    page.theme_mode = ft.ThemeMode.SYSTEM  # Suporte a tema do sistema
+    page.theme = ft.Theme(color_scheme_seed=ft.Colors.BLUE_GREY)
+    page.bgcolor = ft.Colors.WHITE
 
-# 4. Criação das Páginas Modernas (st.Page) com ícones
-page_dashboard = st.Page(renderizar_dashboard, title="Dashboard", icon="📊")
-page_emprestimos = st.Page(renderizar_emprestimos, title="Novo Empréstimo", icon="📤")
-page_devolucoes = st.Page(renderizar_devolucoes, title="Devoluções", icon="📥")
-page_cadastros = st.Page(renderizar_cadastros, title="Cadastros", icon="📋")
+    if hasattr(page, "window_center"):
+        result = page.window_center()
+        if inspect.isawaitable(result):
+            await result
+    elif hasattr(page, "window") and hasattr(page.window, "center"):
+        result = page.window.center()
+        if inspect.isawaitable(result):
+            await result
 
-# 5. Orquestra a navegação nativa do Streamlit
-pg = st.navigation({
-    "Gestão Diária": [page_dashboard, page_emprestimos, page_devolucoes],
-    "Administração": [page_cadastros]
-})
+    # Inicializa o banco de dados
+    init_db()
 
-# 6. Executa a página selecionada
-pg.run()
+    # Estado para controlar a aba selecionada
+    page.data = {"selected_index": 0}
+
+    # Container para o conteúdo principal
+    content_container = ft.Container()
+
+    def on_navigation_change(e):
+        page.data["selected_index"] = e.control.selected_index
+        update_content(page)
+        page.update()
+
+    def update_content(page):
+        idx = page.data["selected_index"]
+        if idx == 0:
+            content_container.content = renderizar_dashboard(page)
+        elif idx == 1:
+            content_container.content = renderizar_emprestimos(page)
+        elif idx == 2:
+            content_container.content = renderizar_devolucoes(page)
+        elif idx == 3:
+            content_container.content = renderizar_cadastros(page)
+        else:
+            content_container.content = ft.Text("Página não encontrada")
+
+    def rail_icon(icon, selected=False):
+        return ft.Icon(
+            icon,
+            color=ft.Colors.WHITE if selected else ft.Colors.BLUE_GREY_100,
+        )
+
+    # NavigationRail
+    rail = ft.NavigationRail(
+        selected_index=0,
+        label_type=ft.NavigationRailLabelType.ALL,
+        bgcolor=ft.Colors.GREY_900,
+        indicator_color=ft.Colors.BLUE_GREY_700,
+        selected_label_text_style=ft.TextStyle(color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+        unselected_label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_100),
+        leading=ft.Container(
+            content=ft.Column(
+                [
+                    ft.Image(src="logo.png", width=100, fit=ft.BoxFit.CONTAIN),
+                    ft.Divider(color=ft.Colors.BLUE_GREY_700),
+                ],
+                spacing=12,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            padding=10,
+        ),
+        destinations=[
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.DASHBOARD_OUTLINED),
+                selected_icon=rail_icon(ft.Icons.DASHBOARD_OUTLINED, selected=True),
+                label="Dashboard"
+            ),
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.OUTBOX),
+                selected_icon=rail_icon(ft.Icons.OUTBOX, selected=True),
+                label="Novo Empréstimo"
+            ),
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.INBOX),
+                selected_icon=rail_icon(ft.Icons.INBOX, selected=True),
+                label="Devoluções"
+            ),
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED),
+                selected_icon=rail_icon(ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED, selected=True),
+                label="Cadastros"
+            ),
+        ],
+        on_change=on_navigation_change,
+    )
+
+    # Layout principal
+    page.add(
+        ft.Row([
+            rail,
+            ft.VerticalDivider(width=1, color=ft.Colors.BLUE_GREY_100),
+            ft.Container(
+                content=content_container,
+                expand=True,
+                padding=20,
+                bgcolor=ft.Colors.WHITE,
+            )
+        ], expand=True)
+    )
+
+    # Inicializar com Dashboard
+    update_content(page)
+
+ft.run(main, assets_dir="assets")

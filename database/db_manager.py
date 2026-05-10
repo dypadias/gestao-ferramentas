@@ -125,6 +125,57 @@ def cadastrar_local(nome):
             conn.close()
 
 
+def buscar_todas_ferramentas():
+    """
+    Retorna todas as ferramentas cadastradas.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ferramentas")
+        return cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"âœ— Erro ao buscar ferramentas: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+
+def buscar_todos_funcionarios():
+    """
+    Retorna todos os funcionários cadastrados.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM funcionarios")
+        return cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"âœ— Erro ao buscar funcionários: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+
+def buscar_todos_locais():
+    """
+    Retorna todos os locais cadastrados.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM locais")
+        return cursor.fetchall()
+    except sqlite3.Error as e:
+        print(f"âœ— Erro ao buscar locais: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+
 def buscar_funcionarios_ativos():
     """
     Retorna todos os funcionários ativos registrados no banco.
