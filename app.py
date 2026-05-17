@@ -6,13 +6,19 @@ from views.emprestimos import renderizar_emprestimos
 from views.devolucoes import renderizar_devolucoes
 from views.cadastros import renderizar_cadastros
 from views.historico import renderizar_historico
+from views.manutencoes import renderizar_manutencoes
 
 async def main(page: ft.Page):
     page.title = "Gestão de Ferramentas"
-    page.window_width = 1200
-    page.window_height = 800
-    page.window_min_width = 1000
-    page.window_min_height = 700
+    
+    # Define o ícone da janela (busca na pasta assets)
+    page.window.icon = "logo.png" 
+    
+    # Propriedades da Janela
+    page.window.width = 1200
+    page.window.height = 800
+    page.window.min_width = 1000
+    page.window.min_height = 700
     page.theme_mode = ft.ThemeMode.SYSTEM  # Suporte a tema do sistema
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.BLUE_GREY)
     page.bgcolor = ft.Colors.WHITE
@@ -52,6 +58,8 @@ async def main(page: ft.Page):
             content_container.content = renderizar_cadastros(page)
         elif idx == 4:
             content_container.content = renderizar_historico(page)
+        elif idx == 5:
+            content_container.content = renderizar_manutencoes(page)
         else:
             content_container.content = ft.Text("Página não encontrada")
 
@@ -69,6 +77,8 @@ async def main(page: ft.Page):
         indicator_color=ft.Colors.BLUE_GREY_700,
         selected_label_text_style=ft.TextStyle(color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
         unselected_label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_100),
+        
+        # O cabeçalho (logo e linha)
         leading=ft.Container(
             content=ft.Column(
                 [
@@ -80,6 +90,8 @@ async def main(page: ft.Page):
             ),
             padding=10,
         ),
+        
+        # As opções de navegação
         destinations=[
             ft.NavigationRailDestination(
                 icon=rail_icon(ft.Icons.DASHBOARD_OUTLINED),
@@ -106,7 +118,29 @@ async def main(page: ft.Page):
                 selected_icon=rail_icon(ft.Icons.HISTORY, selected=True),
                 label="Histórico"
             ),
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.BUILD), 
+                selected_icon=rail_icon(ft.Icons.BUILD, selected=True),
+                label="Manutenção"
+            ),
         ],
+        
+        # 2. ASSINATURA: O rodapé da barra lateral (trailing)
+        trailing=ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text("Criado e desenvolvido por:", size=10, color=ft.Colors.BLUE_GREY_400, text_align=ft.TextAlign.CENTER),
+                    ft.Text("Diego Matos", size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_200, text_align=ft.TextAlign.CENTER),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=2
+            ),
+            expand=True, 
+            alignment=ft.Alignment(0, 1), 
+            # CORREÇÃO AQUI: Passou a ser ft.Padding (com 'P' maiúsculo)
+            padding=ft.Padding.only(bottom=20) 
+        ),
+        
         on_change=on_navigation_change,
     )
 
@@ -127,4 +161,5 @@ async def main(page: ft.Page):
     # Inicializar com Dashboard
     update_content(page)
 
+# Inicia a aplicação passando o diretório base para as imagens
 ft.run(main, assets_dir="assets")
