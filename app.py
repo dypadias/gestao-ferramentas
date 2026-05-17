@@ -5,6 +5,7 @@ from views.dashboard import renderizar_dashboard
 from views.emprestimos import renderizar_emprestimos
 from views.devolucoes import renderizar_devolucoes
 from views.cadastros import renderizar_cadastros
+from views.historico import renderizar_historico
 
 async def main(page: ft.Page):
     page.title = "Gestão de Ferramentas"
@@ -49,6 +50,8 @@ async def main(page: ft.Page):
             content_container.content = renderizar_devolucoes(page)
         elif idx == 3:
             content_container.content = renderizar_cadastros(page)
+        elif idx == 4:
+            content_container.content = renderizar_historico(page)
         else:
             content_container.content = ft.Text("Página não encontrada")
 
@@ -97,6 +100,11 @@ async def main(page: ft.Page):
                 icon=rail_icon(ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED),
                 selected_icon=rail_icon(ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED, selected=True),
                 label="Cadastros"
+            ),
+            ft.NavigationRailDestination(
+                icon=rail_icon(ft.Icons.HISTORY),
+                selected_icon=rail_icon(ft.Icons.HISTORY, selected=True),
+                label="Histórico"
             ),
         ],
         on_change=on_navigation_change,

@@ -40,15 +40,70 @@ def renderizar_devolucoes(page: ft.Page):
         except ValueError:
             return str(valor)
 
-    def devolver_emprestimo(emprestimo_id, ferramenta_id):
-        try:
-            registrar_devolucao(emprestimo_id, ferramenta_id)
-            mostrar_snack_bar("Devolução registrada com sucesso.")
-            atualizar_tabela()
+    def abrir_dialogo_devolucao(emprestimo_id, ferramenta_id, nome_ferramenta):
+        situacao_dropdown = ft.Dropdown(
+            label="Situação",
+            value="OK",
+            options=[
+                ft.dropdown.Option("OK"),
+                ft.dropdown.Option("Avaria"),
+                ft.dropdown.Option("Em Manutenção"),
+            ],
+            width=300,
+        )
+        observacao_field = ft.TextField(
+            label="Observações (Opcional)",
+            multiline=True,
+            min_lines=3,
+            max_lines=5,
+            width=420,
+        )
+
+        def fechar_dialogo(e=None):
+            dialog.open = False
             page.update()
-        except Exception as ex:
-            mostrar_snack_bar(f"Erro ao registrar devolução: {str(ex)}", sucesso=False)
+
+        def confirmar_devolucao(e):
+            situacao = situacao_dropdown.value or "OK"
+            observacao = observacao_field.value or ""
+            dialog.open = False
+
+            try:
+                registrar_devolucao(emprestimo_id, ferramenta_id, situacao, observacao)
+                mostrar_snack_bar("Devolução registrada com sucesso.")
+                atualizar_tabela()
+            except Exception as ex:
+                mostrar_snack_bar(f"Erro ao registrar devolução: {str(ex)}", sucesso=False)
+
             page.update()
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Laudo de Devolução - {nome_ferramenta}"),
+            content=ft.Column(
+                [
+                    situacao_dropdown,
+                    observacao_field,
+                ],
+                spacing=16,
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=fechar_dialogo),
+                ft.ElevatedButton(
+                    "Confirmar Devolução",
+                    icon=ft.Icons.CHECK,
+                    bgcolor=ft.Colors.GREEN_700,
+                    color=ft.Colors.WHITE,
+                    on_click=confirmar_devolucao,
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        page.overlay.append(dialog)
+        dialog.open = True
+        page.update()
 
     def criar_linha(emprestimo):
         emprestimo_id = emprestimo["emprestimo_id"]
@@ -67,7 +122,7 @@ def renderizar_devolucoes(page: ft.Page):
                         icon=ft.Icons.CHECK,
                         bgcolor=ft.Colors.GREEN_700,
                         color=ft.Colors.WHITE,
-                        on_click=lambda e, emp_id=emprestimo_id, ferr_id=ferramenta_id: devolver_emprestimo(emp_id, ferr_id),
+                        on_click=lambda e, emp_id=emprestimo_id, ferr_id=ferramenta_id, nome=emprestimo["ferramenta_nome"]: abrir_dialogo_devolucao(emp_id, ferr_id, nome),
                     )
                 ),
             ]

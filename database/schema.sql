@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS ferramentas (
     nome TEXT NOT NULL,
     patrimonio TEXT UNIQUE NOT NULL,
     status TEXT DEFAULT 'DISPONIVEL',
+    situacao TEXT DEFAULT 'OK',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS emprestimos (
     data_previsao TIMESTAMP,
     status TEXT DEFAULT 'ATIVO',
     observacoes TEXT,
+    observacao_devolucao TEXT,
     FOREIGN KEY (funcionario_id) REFERENCES funcionarios(id) ON DELETE RESTRICT,
     FOREIGN KEY (ferramenta_id) REFERENCES ferramentas(id) ON DELETE RESTRICT,
     FOREIGN KEY (gestor_id) REFERENCES gestores(id) ON DELETE RESTRICT,

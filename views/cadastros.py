@@ -1,5 +1,8 @@
 import flet as ft
 from database.db_manager import (
+    atualizar_ferramenta,
+    atualizar_funcionario,
+    atualizar_local,
     buscar_todas_ferramentas,
     buscar_todos_funcionarios,
     buscar_todos_locais,
@@ -51,9 +54,173 @@ def renderizar_cadastros(page):
             ),
         )
 
-    ferramentas_tabela = criar_tabela(["Nome", "Patrimônio", "Status"])
-    funcionarios_tabela = criar_tabela(["Nome", "Cargo"])
-    locais_tabela = criar_tabela(["Nome"])
+    ferramentas_tabela = criar_tabela(["Nome", "Patrimônio", "Status", "Situação", "Ações"])
+    funcionarios_tabela = criar_tabela(["Nome", "Cargo", "Status", "Ações"])
+    locais_tabela = criar_tabela(["Nome", "Status", "Ações"])
+
+    def abrir_dialogo_editar(ferramenta):
+        nome_field = ft.TextField(label="Nome", value=ferramenta["nome"], width=320)
+        patrimonio_field = ft.TextField(label="Patrimônio", value=ferramenta["patrimonio"], width=320)
+        situacao_dropdown = ft.Dropdown(
+            label="Situação",
+            value=ferramenta.get("situacao", "OK") or "OK",
+            options=[
+                ft.dropdown.Option("OK"),
+                ft.dropdown.Option("Avaria"),
+                ft.dropdown.Option("Em Manutenção"),
+            ],
+            width=320,
+        )
+
+        def fechar_dialogo(e=None):
+            dialog.open = False
+            page.update()
+
+        def salvar_edicao(e):
+            try:
+                atualizar_ferramenta(
+                    ferramenta["id"],
+                    nome_field.value,
+                    patrimonio_field.value,
+                    situacao_dropdown.value or "OK",
+                )
+                dialog.open = False
+                atualizar_tabelas()
+                mostrar_mensagem("Ferramenta atualizada com sucesso!")
+            except Exception as ex:
+                mostrar_mensagem(f"Erro ao atualizar ferramenta: {str(ex)}")
+
+            page.update()
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Editar Ferramenta"),
+            content=ft.Column(
+                [
+                    nome_field,
+                    patrimonio_field,
+                    situacao_dropdown,
+                ],
+                spacing=16,
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=fechar_dialogo),
+                ft.ElevatedButton("Salvar", icon=ft.Icons.SAVE, on_click=salvar_edicao),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        page.overlay.append(dialog)
+        dialog.open = True
+        page.update()
+
+    def abrir_dialogo_editar_funcionario(funcionario):
+        nome_field = ft.TextField(label="Nome", value=funcionario["nome"], width=320)
+        cargo_field = ft.TextField(label="Cargo", value=funcionario["cargo"], width=320)
+        status_dropdown = ft.Dropdown(
+            label="Status",
+            value="Ativo" if funcionario.get("ativo", 1) == 1 else "Inativo",
+            options=[
+                ft.dropdown.Option("Ativo"),
+                ft.dropdown.Option("Inativo"),
+            ],
+            width=320,
+        )
+
+        def fechar_dialogo(e=None):
+            dialog.open = False
+            page.update()
+
+        def salvar_edicao(e):
+            try:
+                atualizar_funcionario(
+                    funcionario["id"],
+                    nome_field.value,
+                    cargo_field.value,
+                    1 if status_dropdown.value == "Ativo" else 0,
+                )
+                dialog.open = False
+                atualizar_tabelas()
+                mostrar_mensagem("Funcionário atualizado com sucesso!")
+            except Exception as ex:
+                mostrar_mensagem(f"Erro ao atualizar funcionário: {str(ex)}")
+            page.update()
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Editar Funcionário"),
+            content=ft.Column(
+                [
+                    nome_field,
+                    cargo_field,
+                    status_dropdown,
+                ],
+                spacing=16,
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=fechar_dialogo),
+                ft.ElevatedButton("Salvar", icon=ft.Icons.SAVE, on_click=salvar_edicao),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        page.overlay.append(dialog)
+        dialog.open = True
+        page.update()
+
+    def abrir_dialogo_editar_local(local):
+        nome_field = ft.TextField(label="Nome", value=local["nome"], width=320)
+        status_dropdown = ft.Dropdown(
+            label="Status",
+            value="Ativo" if local.get("ativo", 1) == 1 else "Inativo",
+            options=[
+                ft.dropdown.Option("Ativo"),
+                ft.dropdown.Option("Inativo"),
+            ],
+            width=320,
+        )
+
+        def fechar_dialogo(e=None):
+            dialog.open = False
+            page.update()
+
+        def salvar_edicao(e):
+            try:
+                atualizar_local(
+                    local["id"],
+                    nome_field.value,
+                    1 if status_dropdown.value == "Ativo" else 0,
+                )
+                dialog.open = False
+                atualizar_tabelas()
+                mostrar_mensagem("Local atualizado com sucesso!")
+            except Exception as ex:
+                mostrar_mensagem(f"Erro ao atualizar local: {str(ex)}")
+            page.update()
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Editar Local"),
+            content=ft.Column(
+                [
+                    nome_field,
+                    status_dropdown,
+                ],
+                spacing=16,
+                tight=True,
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=fechar_dialogo),
+                ft.ElevatedButton("Salvar", icon=ft.Icons.SAVE, on_click=salvar_edicao),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+
+        page.overlay.append(dialog)
+        dialog.open = True
+        page.update()
 
     def atualizar_tabelas():
         ferramentas = buscar_todas_ferramentas()
@@ -65,31 +232,58 @@ def renderizar_cadastros(page):
         locais_tabela.rows.clear()
 
         for ferramenta in ferramentas:
+            ferramenta = dict(ferramenta)
             ferramentas_tabela.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(ferramenta["nome"])),
                         ft.DataCell(ft.Text(ferramenta["patrimonio"])),
                         ft.DataCell(ft.Text(ferramenta["status"] or "-")),
+                        ft.DataCell(ft.Text(ferramenta.get("situacao", "OK") or "OK")),
+                        ft.DataCell(
+                            ft.IconButton(
+                                icon=ft.Icons.EDIT,
+                                icon_color=ft.Colors.BLUE,
+                                on_click=lambda e, f=ferramenta: abrir_dialogo_editar(f),
+                            )
+                        ),
                     ]
                 )
             )
 
         for funcionario in funcionarios:
+            funcionario = dict(funcionario)
             funcionarios_tabela.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(funcionario["nome"])),
                         ft.DataCell(ft.Text(funcionario["cargo"])),
+                        ft.DataCell(ft.Text("Ativo" if funcionario.get("ativo", 1) == 1 else "Inativo")),
+                        ft.DataCell(
+                            ft.IconButton(
+                                icon=ft.Icons.EDIT,
+                                icon_color=ft.Colors.BLUE,
+                                on_click=lambda e, f=funcionario: abrir_dialogo_editar_funcionario(f),
+                            )
+                        ),
                     ]
                 )
             )
 
         for local in locais:
+            local = dict(local)
             locais_tabela.rows.append(
                 ft.DataRow(
                     cells=[
                         ft.DataCell(ft.Text(local["nome"])),
+                        ft.DataCell(ft.Text("Ativo" if local.get("ativo", 1) == 1 else "Inativo")),
+                        ft.DataCell(
+                            ft.IconButton(
+                                icon=ft.Icons.EDIT,
+                                icon_color=ft.Colors.BLUE,
+                                on_click=lambda e, l=local: abrir_dialogo_editar_local(l),
+                            )
+                        ),
                     ]
                 )
             )
