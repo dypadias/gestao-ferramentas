@@ -1,14 +1,19 @@
 import flet as ft
 import datetime
-from database.db_manager import buscar_emprestimos_ativos, buscar_metricas_dashboard
+from database.db_manager import (
+    buscar_emprestimos_ativos,
+    buscar_metricas_dashboard,
+    buscar_manutencoes_ativas      # nova importação
+)
 
 
 def renderizar_dashboard(page):
     """
     Renderiza o dashboard com métricas gerenciais usando Flet.
     """
-    # Buscar métricas
+    # Buscar métricas e manutenções ativas
     metricas = buscar_metricas_dashboard()
+    manutencoes_ativas = buscar_manutencoes_ativas()
 
     def borda_sutil():
         return ft.Border(
@@ -35,6 +40,13 @@ def renderizar_dashboard(page):
         except (TypeError, ValueError):
             return str(valor or '-')
 
+    def formatar_data_envio(valor):
+        try:
+            data_envio_obj = datetime.datetime.strptime(valor, '%Y-%m-%d %H:%M:%S')
+            return data_envio_obj.strftime('%d/%m/%Y')
+        except (TypeError, ValueError):
+            return str(valor or '-')
+
     def criar_tabela_emprestimos(emprestimos):
         columns = [
             ft.DataColumn(ft.Text("Ferramenta")),
@@ -52,7 +64,7 @@ def renderizar_dashboard(page):
                         ft.DataCell(ft.Text(emprestimo['ferramenta_nome'])),
                         ft.DataCell(ft.Text(emprestimo['ferramenta_patrimonio'])),
                         ft.DataCell(ft.Text(emprestimo['funcionario_nome'])),
-                        ft.DataCell(ft.Text(emprestimo['local_nome'] or 'N/A')),
+                        ft.DataCell(ft.Text(emprestimo.get('local_nome', 'N/A'))),
                         ft.DataCell(ft.Text(formatar_data_previsao(emprestimo['data_previsao']))),
                     ]
                 )
@@ -82,55 +94,136 @@ def renderizar_dashboard(page):
             ),
         )
 
-    # Cards de métricas
-    cards = ft.Row([
-        ft.Card(
-            elevation=1,
-            content=ft.Container(
-                content=ft.Column([
-                    ft.Text("Total de Ferramentas", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
-                    ft.Text(str(metricas['total_ferramentas']), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_900),
-                ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
-                padding=20,
-                bgcolor=ft.Colors.WHITE,
-                border=borda_sutil(),
-                border_radius=8,
-            ),
-            width=300,
-            height=100,
-        ),
-        ft.Card(
-            elevation=1,
-            content=ft.Container(
-                content=ft.Column([
-                    ft.Text("Ferramentas Disponíveis", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
-                    ft.Text(str(metricas['disponiveis']), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_700),
-                ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
-                padding=20,
-                bgcolor=ft.Colors.WHITE,
-                border=borda_sutil(),
-                border_radius=8,
-            ),
-            width=300,
-            height=100,
-        ),
-        ft.Card(
-            elevation=1,
-            content=ft.Container(
-                content=ft.Column([
-                    ft.Text("Ferramentas Emprestadas", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
-                    ft.Text(str(metricas['emprestadas']), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.ORANGE_800),
-                ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
-                padding=20,
-                bgcolor=ft.Colors.WHITE,
-                border=borda_sutil(),
-                border_radius=8,
-            ),
-            width=300,
-            height=100,
-        ),
-    ], alignment=ft.MainAxisAlignment.SPACE_EVENLY)
+    def criar_tabela_manutencoes(manutencoes):
+        """Cria uma tabela para exibir ferramentas em manutenção."""
+        if not manutencoes:
+            return ft.Row(
+                [
+                    ft.Icon(ft.Icons.BUILD_CIRCLE, color=ft.Colors.GREY),
+                    ft.Text("Nenhuma ferramenta em manutenção no momento.", size=16, color=ft.Colors.GREY_700),
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                spacing=10,
+            )
 
+        columns = [
+            ft.DataColumn(ft.Text("Ferramenta")),
+            ft.DataColumn(ft.Text("Patrimônio")),
+            ft.DataColumn(ft.Text("Data Envio")),
+            ft.DataColumn(ft.Text("Motivo")),
+        ]
+        rows = []
+        for m in manutencoes:
+            # m é um DictRow com as chaves: id, ferramenta_id, data_envio, motivo, nome, patrimonio
+            rows.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(m['nome'])),
+                        ft.DataCell(ft.Text(m['patrimonio'])),
+                        ft.DataCell(ft.Text(formatar_data_envio(m['data_envio']))),
+                        ft.DataCell(ft.Text(m['motivo'] or '-')),
+                    ]
+                )
+            )
+
+        return ft.Card(
+            elevation=1,
+            content=ft.Container(
+                content=ft.Row(
+                    [
+                        ft.DataTable(
+                            columns=columns,
+                            rows=rows,
+                            border=borda_sutil(),
+                            border_radius=8,
+                            heading_row_color=ft.Colors.BLUE_GREY_50,
+                            horizontal_lines=ft.BorderSide(1, ft.Colors.BLUE_GREY_50),
+                            column_spacing=24,
+                        )
+                    ],
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                bgcolor=ft.Colors.WHITE,
+                border=borda_sutil(),
+                border_radius=8,
+                padding=10,
+            ),
+        )
+
+        # Cards de métricas (com wrap responsivo)
+    cards = ft.ResponsiveRow(
+        [
+            ft.Container(
+                col={"sm": 6, "md": 3},
+                content=ft.Card(
+                    elevation=1,
+                    content=ft.Container(
+                        content=ft.Column([
+                            ft.Text("Total de Ferramentas", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
+                            ft.Text(str(metricas.get('total_ferramentas', 0)), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_900),
+                        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+                        padding=20,
+                        bgcolor=ft.Colors.WHITE,
+                        border=borda_sutil(),
+                        border_radius=8,
+                    ),
+                    expand=True,
+                ),
+            ),
+            ft.Container(
+                col={"sm": 6, "md": 3},
+                content=ft.Card(
+                    elevation=1,
+                    content=ft.Container(
+                        content=ft.Column([
+                            ft.Text("Ferramentas Disponíveis", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
+                            ft.Text(str(metricas.get('disponiveis', 0)), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_700),
+                        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+                        padding=20,
+                        bgcolor=ft.Colors.WHITE,
+                        border=borda_sutil(),
+                        border_radius=8,
+                    ),
+                    expand=True,
+                ),
+            ),
+            ft.Container(
+                col={"sm": 6, "md": 3},
+                content=ft.Card(
+                    elevation=1,
+                    content=ft.Container(
+                        content=ft.Column([
+                            ft.Text("Ferramentas Emprestadas", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
+                            ft.Text(str(metricas.get('emprestadas', 0)), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.ORANGE_800),
+                        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+                        padding=20,
+                        bgcolor=ft.Colors.WHITE,
+                        border=borda_sutil(),
+                        border_radius=8,
+                    ),
+                    expand=True,
+                ),
+            ),
+            ft.Container(
+                col={"sm": 6, "md": 3},
+                content=ft.Card(
+                    elevation=1,
+                    content=ft.Container(
+                        content=ft.Column([
+                            ft.Text("Em Manutenção", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
+                            ft.Text(str(metricas.get('manutencao', 0)), size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.PURPLE_800),
+                        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10),
+                        padding=20,
+                        bgcolor=ft.Colors.WHITE,
+                        border=borda_sutil(),
+                        border_radius=8,
+                    ),
+                    expand=True,
+                ),
+            ),
+        ],
+        spacing=10,
+    )
     # Seção de empréstimos atrasados
     atrasados = metricas['atrasados']
     todos_ativos = buscar_emprestimos_ativos()
@@ -158,6 +251,9 @@ def renderizar_dashboard(page):
     else:
         tabela_no_prazo = criar_tabela_emprestimos(no_prazo)
 
+    # Nova seção: Ferramentas em Manutenção
+    tabela_manutencoes = criar_tabela_manutencoes(manutencoes_ativas)
+
     secoes_tabelas = ft.Card(
         elevation=1,
         content=ft.Container(
@@ -168,6 +264,9 @@ def renderizar_dashboard(page):
                     ft.Divider(color=ft.Colors.BLUE_GREY_100),
                     titulo_com_icone(ft.Icons.VERIFIED, "Em Uso (No Prazo)", ft.Colors.GREEN),
                     tabela_no_prazo,
+                    ft.Divider(color=ft.Colors.BLUE_GREY_100),
+                    titulo_com_icone(ft.Icons.BUILD, "Ferramentas em Manutenção", ft.Colors.PURPLE),
+                    tabela_manutencoes,
                 ],
                 spacing=16,
                 scroll=ft.ScrollMode.AUTO,

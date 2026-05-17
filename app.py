@@ -12,7 +12,7 @@ async def main(page: ft.Page):
     page.title = "Gestão de Ferramentas"
     
     # Define o ícone da janela (busca na pasta assets)
-    page.window.icon = "logo.png" 
+    page.window.icon = "logo.ico" 
     
     # Propriedades da Janela
     page.window.width = 1200
