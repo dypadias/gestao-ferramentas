@@ -78,14 +78,15 @@ async def main(page: ft.Page):
         selected_label_text_style=ft.TextStyle(color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
         unselected_label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_100),
         
-        # O cabeçalho (logo e linha)
-        leading=ft.Container(
+                leading=ft.Container(
             content=ft.Column(
                 [
                     ft.Image(src="logo.png", width=100, fit=ft.BoxFit.CONTAIN),
+                    ft.Text("DM Gestão", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                    ft.Text("Controle de Ferramentas", size=10, color=ft.Colors.BLUE_GREY_200),
                     ft.Divider(color=ft.Colors.BLUE_GREY_700),
                 ],
-                spacing=12,
+                spacing=6,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             padding=10,
